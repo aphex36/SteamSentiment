@@ -1,3 +1,4 @@
+from PorterStemmer import PorterStemmer
 import sys
 import getopt
 import re
@@ -8,7 +9,9 @@ import sets
 import json
 import operator
 
+tempStemmer = PorterStemmer()
 class NaiveBayes:
+
   class TrainSplit:
     """Represents a set of training/testing data. self.train is a list of Examples, as is self.test.
     """
@@ -23,7 +26,6 @@ class NaiveBayes:
     def __init__(self):
       self.klass = ''
       self.words = []
-
 
   def __init__(self):
     """NaiveBayes initialization"""
@@ -178,7 +180,7 @@ class NaiveBayes:
     """
     words = s.split()
     for i in range(len(words)):
-      words[i] = re.sub(r'[^\w\s]','', words[i].lower())
+      words[i] = tempStemmer.stem(re.sub(r'[^\w\s]','', words[i].lower()))
     return words
 
 
@@ -406,6 +408,6 @@ def main():
     classifyFile(FILTER_STOP_WORDS, BOOLEAN_NB, BEST_MODEL, args[0], args[1])
   else:
     test10Fold(args, FILTER_STOP_WORDS, BOOLEAN_NB, BEST_MODEL)
-
+ 
 if __name__ == "__main__":
     main()
