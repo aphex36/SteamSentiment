@@ -356,14 +356,18 @@ class NaiveBayes:
 def test10Fold(args, FILTER_STOP_WORDS, BOOLEAN_NB, BEST_MODEL):
   nb = NaiveBayes()
   splits = nb.buildSplits(args)
-  avgAccuracy = 0.0
+  avgTestAccuracy = 0.0
+  avgTrainAccuracy = 0.0
   fold = 0
   for split in splits:
     classifier = NaiveBayes()
     classifier.FILTER_STOP_WORDS = FILTER_STOP_WORDS
     classifier.BOOLEAN_NB = BOOLEAN_NB
     classifier.BEST_MODEL = BEST_MODEL
-    accuracy = 0.0
+    testAccuracy = 0.0
+    trainAccuracy = 0.0
+
+
     for example in split.train:
       words = example.words
       classifier.addExample(example.klass, words)
@@ -372,15 +376,26 @@ def test10Fold(args, FILTER_STOP_WORDS, BOOLEAN_NB, BEST_MODEL):
       words = example.words
       guess = classifier.classify(words)
       if example.klass == guess:
-        accuracy += 1.0
+        testAccuracy += 1.0
 
-    accuracy = accuracy / len(split.test)
-    avgAccuracy += accuracy
-    print '[INFO]\tFold %d Accuracy: %f' % (fold, accuracy)
+    for example in split.train:
+      words = example.words
+      guess = classifier.classify(words)
+      if example.klass == guess:
+        trainAccuracy += 1.0
+
+    testAccuracy = testAccuracy / len(split.test)
+    trainAccuracy = trainAccuracy / len(split.train)
+    avgTestAccuracy += testAccuracy
+    avgTrainAccuracy += trainAccuracy
+    print '[INFO]\tFold %d Train Accuracy: %f' % (fold, trainAccuracy)
+    print '[INFO]\tFold %d Test Accuracy: %f' % (fold, testAccuracy)
     fold += 1
-  avgAccuracy = avgAccuracy / fold
-  print '[INFO]\tAccuracy: %f' % avgAccuracy
+  avgTestAccuracy = avgTestAccuracy / fold
+  avgTrainAccuracy = avgTrainAccuracy / fold
 
+  print '[INFO]\tTrain Average Accuracy: %f' % avgTrainAccuracy
+  print '[INFO]\tTest Average Accuracy: %f' % avgTestAccuracy
 
 def classifyFile(FILTER_STOP_WORDS, BOOLEAN_NB, BEST_MODEL, trainDir, testFilePath):
   classifier = NaiveBayes()

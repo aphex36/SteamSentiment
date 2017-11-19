@@ -150,7 +150,8 @@ class SupportVectorMachine:
 
   def test10Folds(self):
     numFeatures = len(self.vocab) + 3
-    avgAccuracy = 0.0
+    avgTestAccuracy = 0.0
+    avgTrainAccuracy = 0.0
     for i in range(10):
       
       dataSplit = self.splitTrainAndTest(i)
@@ -173,7 +174,7 @@ class SupportVectorMachine:
           rowNum += 1
           j += 1
 
-      clf = svm.LinearSVC()
+      clf = svm.SVC(kernel = 'linear')
 
       clf.fit(X_train, Y_train)
       rowNum = 0
@@ -181,7 +182,7 @@ class SupportVectorMachine:
         j = 0
         while True:
           reviewType = fileType + "_review_" + str(j)
-          #print(reviewType)
+
           if reviewType not in self.allReviews:
             break
           self.getVectorizedForm(self.allReviews[reviewType], reviewType, X_test, rowNum)
@@ -194,13 +195,25 @@ class SupportVectorMachine:
           j += 1
 
       accuratePreds = 0
+      trainPreds = 0
+
       Y_predicted = clf.predict(X_test)
+      Y_train_pred = clf.predict(X_train)
+
       for k in range(Y_actual.shape[0]):
         if Y_actual[k] == Y_predicted[k]:
           accuratePreds += 1
-      avgAccuracy += accuratePreds/(1.0*Y_actual.shape[0])
-      print("Fold " + str(i+1) + ": " + str(accuratePreds/(1.0*Y_actual.shape[0])))
-    print("Average accuracy: " + str(avgAccuracy*10))
+      for k in range(Y_train.shape[0]):
+        if Y_train[k] == Y_train_pred[k]:
+          trainPreds += 1
+
+      avgTestAccuracy += accuratePreds/(1.0*Y_actual.shape[0])
+      avgTrainAccuracy += trainPreds/(1.0*Y_train.shape[0])
+
+      print("Fold " + str(i+1) + " Train Accuracy: " + str(trainPreds/(1.0*Y_train.shape[0])))
+      print("Fold " + str(i+1) + " Test Accuracy: " + str(accuratePreds/(1.0*Y_actual.shape[0])))
+    print("Average train accuracy: " + str(avgTrainAccuracy*10))
+    print("Average test accuracy: " + str(avgTestAccuracy*10))
 
 
   def main(self):
