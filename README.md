@@ -16,3 +16,4 @@ python NaiveBayes.py -fb .
 To run SVM:
 
 python SupportVectorMachine.py
+
