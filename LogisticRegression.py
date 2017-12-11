@@ -1,19 +1,13 @@
-import sys
-import getopt
 import re
 import os
 import math
-import collections
-import sets
 import json
 import numpy as np
-import operator
 from PorterStemmer import PorterStemmer
-from sklearn import svm
-from datetime import datetime
-class SupportVectorMachine:
+from sklearn import linear_model
 
 
+class LogisticRegressionModel:
   def readFileAndLoadData(self, fileName):
     """
      * Code for reading a file.  you probably don't want to modify anything here,
@@ -23,8 +17,6 @@ class SupportVectorMachine:
     f = open(fileName)
     lines = [s.rstrip("\n\r") for s in f.readlines()]
     f.close()
-
-
     i = 0
     for line in lines:
       tempJson = json.loads(line)
@@ -35,10 +27,7 @@ class SupportVectorMachine:
       individualWords = tempJson['review'].split()
       countWithoutStopWords = 0
       countWithStop = 0
-      positionOfWord = 0
       for tempWord in individualWords:
-        positionToWeight = 1.5*math.cos(2*math.pi*positionOfWord/(len(individualWords))) + 2.5
-        positionOfWord += 1
         wordWithoutPunc = self.stemmer.stem(re.sub(r'[^\w\s]','', tempWord.lower()))
         if wordWithoutPunc in self.stopList:
           continue
@@ -51,24 +40,19 @@ class SupportVectorMachine:
           if currDocName not in self.invertedIndex[wordWithoutPunc]:
             self.invertedIndex[wordWithoutPunc][currDocName] = dict()
             self.invertedIndex[wordWithoutPunc][currDocName]["count"] = 1
-            self.invertedIndex[wordWithoutPunc][currDocName]["weighting"] = positionToWeight
           else:
             self.invertedIndex[wordWithoutPunc][currDocName]["count"] += 1
-            self.invertedIndex[wordWithoutPunc][currDocName]["weighting"] += positionToWeight
       for tempWord in individualWords:
         wordWithoutPunc = self.stemmer.stem(re.sub(r'[^\w\s]','', tempWord.lower()))
         if wordWithoutPunc not in self.stopList:
           self.invertedIndex[wordWithoutPunc][currDocName]["tf"] = self.invertedIndex[wordWithoutPunc][currDocName]["count"] #/ (1.0*countWithoutStopWords)
-          self.invertedIndex[wordWithoutPunc][currDocName]["weighting"] = self.invertedIndex[wordWithoutPunc][currDocName]["weighting"]/(1.0*self.invertedIndex[wordWithoutPunc][currDocName]["count"])
+
       if str(fileName) not in self.countsByGame:
         self.countsByGame[str(fileName)] = 0
       self.countsByGame[str(fileName)] += 1
       i += 1
 
-
-
   def getVectorizedForm(self, jsonifiedReview, docName, matrix, rowNum):
-
     allReviewWords = jsonifiedReview['review'].split()
     for word in allReviewWords:
       if self.stemmer.stem(re.sub(r'[^\w\s]','', word.lower())) in self.stopList or re.sub(r'[^\w\s]','', word.lower()):
@@ -127,7 +111,7 @@ class SupportVectorMachine:
     return math.log10(self.numDocs/(1.0*countSoFar))
 
   def getTFIDF(self, word, docName):
-    return self.getTF(word, docName)*self.getIDF(word)*self.invertedIndex[word][docName]["weighting"]
+    return self.getTF(word, docName)*self.getIDF(word)
 
   def splitTrainAndTest(self, startIndex):
       startOfTest = (startIndex+7)%10
@@ -156,9 +140,9 @@ class SupportVectorMachine:
   def test10Folds(self):
     numFeatures = len(self.vocab) + 3
     avgTestAccuracy = 0.0
-    avgTrainAccuracy = 0.0
     avgPrecision = 0.0
     avgRecall = 0.0
+    avgTrainAccuracy = 0.0
     for i in range(10):
 
       dataSplit = self.splitTrainAndTest(i)
@@ -181,9 +165,10 @@ class SupportVectorMachine:
           rowNum += 1
           j += 1
 
-      clf = svm.SVC(kernel = 'linear')
+      logistic = linear_model.LogisticRegression()
 
-      clf.fit(X_train, Y_train)
+      logistic.fit(X_train, Y_train)
+
       rowNum = 0
       for fileType in dataSplit['test']:
         j = 0
@@ -204,13 +189,12 @@ class SupportVectorMachine:
       accuratePreds = 0
       trainPreds = 0
 
-      Y_predicted = clf.predict(X_test)
-      Y_train_pred = clf.predict(X_train)
-
       tp = 0
       tn = 0
       fp = 0
       fn = 0
+      Y_predicted = logistic.predict(X_test)
+      Y_train_pred = logistic.predict(X_train)
 
       for k in range(Y_actual.shape[0]):
         if Y_actual[k] == Y_predicted[k]:
@@ -269,5 +253,5 @@ class SupportVectorMachine:
     self.test10Folds()
 
 if __name__ == '__main__':
-  someSVM = SupportVectorMachine()
-  someSVM.main()
+  someLog = LogisticRegressionModel()
+  someLog.main()

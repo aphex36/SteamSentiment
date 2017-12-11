@@ -26,13 +26,14 @@ class NaiveBayes:
     def __init__(self):
       self.klass = ''
       self.words = []
+      self.review = ''
 
   def __init__(self):
     """NaiveBayes initialization"""
     self.FILTER_STOP_WORDS = False
     self.BOOLEAN_NB = False
     self.BEST_MODEL = False
-    self.stopList = set(self.readFileNormal('data/english.stop'))   
+    self.stopList = set(self.readFileNormal('data/english.stop'))
     self.numFolds = 10
     self.total = 0
     self.vocab = set([])
@@ -171,7 +172,10 @@ class NaiveBayes:
 
     for line in lines:
       tempJson = json.loads(line)
-      contents.append(self.segmentWords(tempJson['review']))
+      exampleInfo = dict()
+      exampleInfo['words'] = self.segmentWords(tempJson['review'])
+      exampleInfo['review'] = tempJson['review']
+      contents.append(exampleInfo)
     return contents
 
   def segmentWords(self, s):
@@ -193,17 +197,19 @@ class NaiveBayes:
     negTrainFileNames = os.listdir('%s/neg/' % trainDir)
     for fileName in posTrainFileNames:
       allExamplesInFile = self.readFile('%s/pos/%s' % (trainDir, fileName))
-      for exampleInFile in allExamplesInFile: 
+      for exampleInFile in allExamplesInFile:
         example = self.Example()
-        example.words = exampleInFile
+        example.words = exampleInFile['words']
+        example.review = exampleInFile['review']
         example.klass = 'pos'
         split.train.append(example)
 
     for fileName in negTrainFileNames:
       allExamplesInFile = self.readFile('%s/neg/%s' % (trainDir, fileName))
-      for exampleInFile in allExamplesInFile: 
+      for exampleInFile in allExamplesInFile:
         example = self.Example()
-        example.words = exampleInFile
+        example.words = exampleInFile['words']
+        example.review = exampleInFile['review']
         example.klass = 'neg'
         split.train.append(example)
 
@@ -227,9 +233,10 @@ class NaiveBayes:
       split = self.TrainSplit()
       for fileName in posTrainFileNames:
         allExamplesInFile = self.readFile('%s/pos/%s' % (trainDir, fileName))
-        for exampleInFile in allExamplesInFile: 
+        for exampleInFile in allExamplesInFile:
           example = self.Example()
-          example.words = exampleInFile
+          example.words = exampleInFile['words']
+          example.review = exampleInFile['review']
           example.klass = 'pos'
           if fileName[0] in self.determineFold(fold):
             split.test.append(example)
@@ -239,9 +246,10 @@ class NaiveBayes:
 
       for fileName in negTrainFileNames:
         allExamplesInFile = self.readFile('%s/neg/%s' % (trainDir, fileName))
-        for exampleInFile in allExamplesInFile: 
+        for exampleInFile in allExamplesInFile:
           example = self.Example()
-          example.words = exampleInFile
+          example.words = exampleInFile['words']
+          example.review = exampleInFile['review']
           example.klass = 'neg'
           if fileName[0] in self.determineFold(fold):
             split.test.append(example)
@@ -279,12 +287,13 @@ class NaiveBayes:
         split = self.TrainSplit()
         for fileName in posTrainFileNames:
           allExamplesInFile = self.readFile('%s/pos/%s' % (trainDir, fileName))
-          for exampleInFile in allExamplesInFile: 
+          for exampleInFile in allExamplesInFile:
             example = self.Example()
-            example.words = exampleInFile
+            example.words = exampleInFile['words']
             example.klass = 'pos'
+            example.review = exampleInFile['review']
             if fileName[0] in self.determineFold(fold):
-              split.test.append(example) 
+              split.test.append(example)
             else:
               split.train.append(example)
 
@@ -292,7 +301,8 @@ class NaiveBayes:
           allExamplesInFile = self.readFile('%s/neg/%s' % (trainDir, fileName))
           for exampleInFile in allExamplesInFile:
             example = self.Example()
-            example.words = exampleInFile
+            example.words = exampleInFile['words']
+            example.review = exampleInFile['review']
             example.klass = 'neg'
             if fileName[0] in self.determineFold(fold):
               split.test.append(example)
@@ -310,7 +320,8 @@ class NaiveBayes:
         allExamplesInFile = self.readFile('%s/pos/%s' % (trainDir, fileName))
         for exampleInFile in allExamplesInFile:
           example = self.Example()
-          example.words = exampleInFile
+          example.words = exampleInFile['words']
+          example.review = exampleInFile['review']
           example.klass = 'pos'
           split.train.append(example)
 
@@ -318,7 +329,8 @@ class NaiveBayes:
         allExamplesInFile = self.readFile('%s/neg/%s' % (trainDir, fileName))
         for exampleInFile in allExamplesInFile:
           example = self.Example()
-          example.words = exampleInFile
+          example.words = exampleInFile['words']
+          example.review = exampleInFile['review']
           example.klass = 'neg'
           split.train.append(example)
 
@@ -330,7 +342,8 @@ class NaiveBayes:
         allExamplesInFile = self.readFile('%s/pos/%s' % (testDir, fileName))
         for exampleInFile in allExamplesInFile:
           example = self.Example()
-          example.words =  exampleInFile
+          example.words = exampleInFile['words']
+          example.review = exampleInFile['review']
           example.klass = 'pos'
           split.test.append(example)
 
@@ -338,7 +351,8 @@ class NaiveBayes:
         allExamplesInFile = self.readFile('%s/neg/%s' % (testDir, fileName))
         for exampleInFile in allExamplesInFile:
           example = self.Example()
-          example.words = exampleInFile
+          example.words = exampleInFile['words']
+          example.review = exampleInFile['review']
           example.klass = 'neg'
           split.test.append(example)
 
@@ -354,12 +368,21 @@ class NaiveBayes:
     return filtered
 
 def test10Fold(args, FILTER_STOP_WORDS, BOOLEAN_NB, BEST_MODEL):
+
   nb = NaiveBayes()
+
+
   splits = nb.buildSplits(args)
   avgTestAccuracy = 0.0
+  avgPrecision = 0.0
+  avgRecall = 0.0
   avgTrainAccuracy = 0.0
   fold = 0
   for split in splits:
+    fp = 0
+    fn = 0
+    tp = 0
+    tn = 0
     classifier = NaiveBayes()
     classifier.FILTER_STOP_WORDS = FILTER_STOP_WORDS
     classifier.BOOLEAN_NB = BOOLEAN_NB
@@ -377,6 +400,16 @@ def test10Fold(args, FILTER_STOP_WORDS, BOOLEAN_NB, BEST_MODEL):
       guess = classifier.classify(words)
       if example.klass == guess:
         testAccuracy += 1.0
+        if guess == 'pos':
+            tp += 1
+        else:
+            tn += 1
+      else:
+
+        if guess == 'pos':
+          fp += 1
+        else:
+          fn += 1
 
     for example in split.train:
       words = example.words
@@ -385,17 +418,34 @@ def test10Fold(args, FILTER_STOP_WORDS, BOOLEAN_NB, BEST_MODEL):
         trainAccuracy += 1.0
 
     testAccuracy = testAccuracy / len(split.test)
+    precision = (tp*1.0)/(tp+fp)
+    recall = (tp*1.0)/(tp+fn)
     trainAccuracy = trainAccuracy / len(split.train)
     avgTestAccuracy += testAccuracy
     avgTrainAccuracy += trainAccuracy
+    avgPrecision += precision
+    avgRecall += recall
     print '[INFO]\tFold %d Train Accuracy: %f' % (fold, trainAccuracy)
     print '[INFO]\tFold %d Test Accuracy: %f' % (fold, testAccuracy)
+    print '[INFO]\tFold %d Precision: %f' % (fold, precision)
+    print '[INFO]\tFold %d Recall: %f' % (fold, recall)
+
     fold += 1
   avgTestAccuracy = avgTestAccuracy / fold
   avgTrainAccuracy = avgTrainAccuracy / fold
+  avgPrecision = avgPrecision / fold
+  avgRecall = avgRecall / fold
 
   print '[INFO]\tTrain Average Accuracy: %f' % avgTrainAccuracy
   print '[INFO]\tTest Average Accuracy: %f' % avgTestAccuracy
+  print '[INFO]\tAverage Precision: %f' % avgPrecision
+  print '[INFO]\tAverage Recall: %f' % avgRecall
+  print '\n'
+
+  '''for fpRev in fp:
+    print "FALSE POSITIVE: " + fpRev + "\n"
+  for fnRev in fn:
+    print "FALSE NEGATIVE: " + fnRev + "\n"'''
 
 def classifyFile(FILTER_STOP_WORDS, BOOLEAN_NB, BEST_MODEL, trainDir, testFilePath):
   classifier = NaiveBayes()
@@ -423,6 +473,6 @@ def main():
     classifyFile(FILTER_STOP_WORDS, BOOLEAN_NB, BEST_MODEL, args[0], args[1])
   else:
     test10Fold(args, FILTER_STOP_WORDS, BOOLEAN_NB, BEST_MODEL)
- 
+
 if __name__ == "__main__":
     main()
