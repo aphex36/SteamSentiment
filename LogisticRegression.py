@@ -189,12 +189,12 @@ class LogisticRegressionModel:
       accuratePreds = 0
       trainPreds = 0
 
+      Y_predicted = logistic.predict(X_test)
+      Y_train_pred = logistic.predict(X_train)
       tp = 0
       tn = 0
       fp = 0
       fn = 0
-      Y_predicted = logistic.predict(X_test)
-      Y_train_pred = logistic.predict(X_train)
 
       for k in range(Y_actual.shape[0]):
         if Y_actual[k] == Y_predicted[k]:
